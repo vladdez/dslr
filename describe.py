@@ -1,10 +1,10 @@
 import sys
-import os
-import csv
 import argparse
 import numpy as np
 import pandas as pd
+from tools import csv_load
 pd.set_option("display.max_columns", None)
+
 
 def count_(col):
     return len(col)
@@ -45,43 +45,15 @@ def percentile_(col, p):
     
     return col[index]
 
-def csv_load(name):
-    data = []
-    try:
-        with open(name, 'r') as file:
-            if os.stat(name).st_size != 0:
-                file = csv.reader(file, delimiter=',')
-                for _ in file:  
-                    row = []
-                    for value in _:
-                        try:
-                            value = float(value)
-                        except:
-                            pass
-                            #if not value:
-                              #  value = np.nan
-                        row.append(value)
-                    data.append(row)
-            else:
-                exit()
-    except csv.Error as e:
-        print(e)
-    return np.array(data)
-
 def describe(data):
     num_cols = []
-    d = pd.DataFrame(data,  columns=data[0])
-    d = d.drop(d.index[0]).reset_index()
-    d = d.drop('index', axis='columns')
+
     for column in d:
         try:
-            #d[column] = d[column].dropna()
             d[column] = pd.to_numeric(d[column])
-            
             num_cols.append(column)
         except:
             pass
-            #print(d[column].isna().sum() )
     d2 = d[num_cols]
     count = []
     mean = []
@@ -101,7 +73,7 @@ def describe(data):
         q2.append(percentile_(d2[column], 0.25))
         q3.append(percentile_(d2[column], 0.5))
         q4.append(percentile_(d2[column], 0.75))
-    measures = [['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']]
+    measures = [['Count', 'Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max']]
     res = pd.DataFrame(columns = d2.columns, data = np.array([count, mean, std, minx, q2, q3, q4, maxx]))
     res = res.set_index(measures)
     for column in res:
