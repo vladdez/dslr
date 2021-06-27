@@ -1,4 +1,5 @@
 from tools import csv_load
+from describe import mean_, std_
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -15,14 +16,22 @@ class LogRe():
     def train(self, l_rate, epochs):
         self.epochs = epochs
         self.l_rate = l_rate
+        self.mean = []
+        self.std = []
         data = csv_load('datasets/dataset_train.csv')
-        
         x = data.loc[:, 'Arithmancy':'Flying']
+        for i in x:
+            tmp_mean = mean_(x[i])
+            self.mean.append(tmp_mean)
+            tmp_std = std_(x[i], tmp_mean)
+            self.std.append(tmp_std)
+            x[i] = x[i].fillna(tmp_mean)
+            x[i] = (x[i] - tmp_mean) / tmp_std
         bias = np.ones(np.shape(x)[0])
         x.insert(loc=0, column='bias', value = bias)
         y = data['Hogwarts House'].values
         labels = data['Hogwarts House'].unique()
-
+        #print(x)
         # data split for multiclass classification
         new_y = pd.DataFrame()
         models = pd.DataFrame()
@@ -40,28 +49,20 @@ class LogRe():
         return 1 / (1 + np.exp(-z))
 
     def GD(self, x, y):
-        self.w = np.zeros(np.shape(x))
-        w = np.zeros(np.shape(x))
+        y = np.vstack(y)
+        self.w = np.zeros((np.shape(x)[1], 1))
         m = np.shape(y)[0]
-        print(x)
-        print(y)
+        print(np.shape(x), np.shape(self.w))
         for i in range(1, self.epochs):
-            z = x * w 
-            #print(z)
+            z = x.dot(self.w) # (1600, 14) * (14, 1) = (1600, 1)
             h = self.sigmoid(z)
-            #print('h', h)
-            e = (h.T - np.array(y))
-            #print(e)
-            derivated_loss = (self.l_rate/m) * (x.T * e)
-            #print(derivated_loss)
-            self.w = self.w - derivated_loss.T
-            print(self.w.shape)
-            #a = self.w  * x
-            #a = LogRe.sigmoid(self, self.w  * x)
-            #J = np.log(a).T
-            #J = -(1/m) * (np.log(LogRe.sigmoid(self, x * self.w)).T * y + np.log(1 - LogRe.sigmoid(self, x * self.w)).T * (1 - y))
-            #print(J)
-            np.savetxt('weights.csv', self.w)
+            e = (h - y)
+            grad = (1/m) * (x.T.dot(e)) # (1600, 14) * (1600, 1) = (14, 1)
+            self.w = self.w - grad
+            #print(grad)
+            print(self.w)
+
+        np.savetxt('weights.csv', self.w)
         
         
         
@@ -86,7 +87,7 @@ def main():
     if l_rate < 0.000001:
         l_rate = 0.5
         print('Warning! Too small learning rate. It was set to 0.5.')
-    epochs = 2
+    epochs = 100
     LR = LogRe()
     LR.train(l_rate, epochs)
 
