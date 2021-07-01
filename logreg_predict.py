@@ -10,11 +10,12 @@ if __name__ == '__main__':
     bias = pd.DataFrame(np.ones(np.shape(X)[0]))
     hand = X['Best Hand'].replace(['Right', 'Left'], [0, 1])
     X = X.loc[:, 'Arithmancy':'Flying']
-    for i in X:
-        X[i] = X[i].fillna(0)
+   # for i in X:
+   #     X[i] = X[i].fillna(0) #?????
     for i in X.loc[:, 'Arithmancy':'Flying']:
         tmp_mean = mean_(X[i])
         tmp_std = std_(X[i], tmp_mean)
+        X[i] = X[i].fillna(tmp_mean)
         X[i] = (X[i] - tmp_mean) / tmp_std
     X = pd.concat([hand, X], axis=1)
     X = pd.concat([bias, X], axis=1)

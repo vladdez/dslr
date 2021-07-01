@@ -66,7 +66,7 @@ class LogRe():
             z = np.dot(x, self.w) # (1600, 14) * (14, 1) = (1600, 1)
             h = sigmoid(z)
             residual = (h - y)
-            grad_w = (self.l_rate / m) * (np.dot(x.T, residual) + self.l_rate * np.sign(self.w)) + ((self.l_rate / m) * self.w) # (1600, 14) * (1600, 1) = (14, 1)
+            grad_w = (self.l_rate / m) * (np.dot(x.T, residual)) + ((self.l_rate / m) * self.w) # (1600, 14) * (1600, 1) = (14, 1)
             grad_b = (self.l_rate / m) * np.dot(self.bias.T, residual)
             #h = np.clip(h, eps, 1 - eps)
             J = (1 / m) * (np.dot(-y.T, np.log(h)) - (np.dot((1 - y).T, np.log(1 - h)))) + sum((self.l_rate / (2*m)) * (self.w**2))
