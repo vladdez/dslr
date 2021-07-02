@@ -1,11 +1,9 @@
-from tools import csv_load, sigmoid
+from tools import csv_load, sigmoid, softmax
 from describe import mean_, std_
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import argparse
-from sklearn.metrics import log_loss
-
 
 class LogRe():
     def __init__(self):
@@ -14,13 +12,15 @@ class LogRe():
         self.epochs = 0
         self.l_rate = 0
         self.loss = []
+        self.loss_flag = 0
 
-    def train(self, l_rate, epochs):
+    def train(self, l_rate, epochs, loss):
         self.epochs = epochs
         self.l_rate = l_rate
+        self.loss_flag = loss
 
         # preprocessing
-        data = csv_load('datasets/dataset_train.csv')  
+        data = csv_load('datasets/dataset_train.csv')
         data = data.dropna()
         data['Best Hand'] = data['Best Hand'].replace(['Right', 'Left'], [0, 1])
         x = data.loc[:, 'Best Hand':'Flying']
@@ -30,7 +30,7 @@ class LogRe():
             tmp_std = std_(x[i], tmp_mean)
             x[i] = x[i].fillna(tmp_mean)
             x[i] = (x[i] - tmp_mean) / tmp_std
-    
+
         # data split for multiclass classification
         new_y = pd.DataFrame()
         models = pd.DataFrame()
@@ -47,7 +47,6 @@ class LogRe():
         for j in new_y:
             LogRe.GD(self, x.values, new_y[j].values, j)
             model = pd.Series(self.w.reshape(-1).tolist())
-            print(type(model))
             models[j] = model
         models = pd.DataFrame(models)
         models.to_csv('weights.csv', encoding='utf-8')
@@ -58,24 +57,24 @@ class LogRe():
         self.w = np.zeros((np.shape(x)[1], 1))
         m = np.shape(y)[0]  # number of rows
         self.bias = np.vstack(np.ones(np.shape(x)[0]))
-
+        e = self.epochs / 10
+        
         # propagation
         print('Training classifier on class', j)
         for i in range(0, self.epochs):
-            #print(x.shape)
-            z = np.dot(x, self.w) # (1600, 14) * (14, 1) = (1600, 1)
+            z = np.dot(x, self.w)  # (1600, 14) * (14, 1) = (1600, 1)
             h = sigmoid(z)
             residual = (h - y)
-            grad_w = (self.l_rate / m) * (np.dot(x.T, residual)) + ((self.l_rate / m) * self.w) # (1600, 14) * (1600, 1) = (14, 1)
+            grad_w = (self.l_rate / m) * (np.dot(x.T, residual)) + (
+                        (self.l_rate / m) * self.w)  # (1600, 14) * (1600, 1) = (14, 1)
             grad_b = (self.l_rate / m) * np.dot(self.bias.T, residual)
-            #h = np.clip(h, eps, 1 - eps)
-            J = (1 / m) * (np.dot(-y.T, np.log(h)) - (np.dot((1 - y).T, np.log(1 - h)))) + sum((self.l_rate / (2*m)) * (self.w**2))
-            if i == 0 or i % 10 == 0:
-                print(i, '/ 100:', 'Loss', J[0][0], log_loss(y, h))
+            J = (1 / m) * (np.dot(-y.T, np.log(h)) - (np.dot((1 - y).T, np.log(1 - h)))) + sum(
+                (self.l_rate / (2 * m)) * (self.w ** 2))
+            if self.loss_flag == 1 and (i == 0 or i % e == 0):
+                print(f"{i}/{self.epochs}: Loss {J[0][0]}.")
             self.loss[j].append(J[0][0])
             self.w = self.w - grad_w
             self.bias = self.bias - grad_b
-        print(type(self.bias[0]))
         self.w = np.vstack((self.bias[0], self.w))
         print('')
 
@@ -88,28 +87,37 @@ class LogRe():
         plt.ylabel("Loss")
         plt.show()
 
-
-    # https://jonchar.net/notebooks/Logistic-Regression/ 
-    # print(self.w)
+    # https://jonchar.net/notebooks/Logistic-Regression/
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--learning_rate', default=0.5, type=float)
+    parser.add_argument('--learning_rate', default=0.1, type=float)
+    parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--viz', action="store_true")
+    parser.add_argument('--loss', action="store_true")
     args = parser.parse_args()
-    #print(args.__dict__)
+    # print(args.__dict__)
     l_rate = args.__dict__['learning_rate']
+    epochs = args.__dict__['epochs']
     if l_rate > 1:
-        l_rate = 0.5
+        l_rate = 0.1
         print('Warning! Too big learning rate. It was set to 0.5.')
     if l_rate < 0.000001:
-        l_rate = 0.5
+        l_rate = 0.1
         print('Warning! Too small learning rate. It was set to 0.5.')
-    l_rate = 0.1
-    epochs = 100
+    if epochs > 10000:
+        epochs = 100
+        print('Warning! Too much epochs. It was set to 100.')
+    if epochs < 10:
+        epochs = 100
+        print('Warning! Too few epochs. It was set to 100.')
+    if args.__dict__['loss'] == True:
+        loss = 1
+    else:
+        loss = 0
     LR = LogRe()
-    LR.train(l_rate, epochs)
+    LR.train(l_rate, epochs, loss)
     if args.__dict__['viz'] == True:
         LR.GD_plot()
 

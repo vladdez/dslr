@@ -18,8 +18,14 @@ def mean_(col):
     return sum / len(col)
 
 def median_(col):
-    sortedcol = sorted(col)
-    col_len = len(col)
+    cleanedcol = []
+    for i in col:
+        if np.isnan(i):
+            continue
+        else:
+            cleanedcol.append(i)
+    sortedcol = sorted(cleanedcol)
+    col_len = len(cleanedcol)
     index = (col_len - 1) // 2
 
     if (col_len % 2):
@@ -50,6 +56,7 @@ def max_(col):
     return m
 
 def percentile_(col, p):
+    col = col.dropna()
     col = col.sort_values()
     index = int(len(col - 1) * p)
     
